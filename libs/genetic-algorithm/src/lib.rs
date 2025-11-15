@@ -1,5 +1,6 @@
 mod chromosome;
 mod crossover;
+mod mutation;
 mod selection;
 
 use rand::RngCore;
