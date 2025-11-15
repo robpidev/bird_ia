@@ -1,69 +1,77 @@
 mod chromosome;
+mod crossover;
+mod selection;
 
-use rand::{RngCore, seq::IndexedRandom};
+use rand::RngCore;
 
-pub trait Individual {
-    fn fitness(&self) -> f32;
-}
+use crate::{
+    crossover::CrossoverMethod,
+    selection::{Individual, SelectionMethod},
+};
 
 pub struct GeneticAlgorithm<S> {
     selection_method: S,
+    crossover_method: Box<dyn CrossoverMethod>,
 }
 
 impl<S> GeneticAlgorithm<S>
 where
     S: SelectionMethod,
 {
-    pub fn new(selection_method: S) -> Self {
-        Self { selection_method }
+    pub fn new(selection_method: S, crossover_method: impl CrossoverMethod + 'static) -> Self {
+        Self {
+            selection_method,
+            crossover_method: Box::new(crossover_method),
+        }
     }
 
     pub fn envolve<I>(&self, rng: &mut dyn RngCore, population: &[I]) -> Vec<I>
     where
         I: Individual,
     {
-        assert!(!population.is_empty());
-
         (0..population.len())
             .map(|_| {
-                let parent_a = self.selection_method.select(rng, population);
-                let parent_b = self.selection_method.select(rng, population);
-
+                // Selection
+                let parent_a = self.selection_method.select(rng, population).chromosome();
+                let parent_b = self.selection_method.select(rng, population).chromosome();
+                let mut _child = self.crossover_method.crossover(rng, parent_a, parent_b);
+                // TODO: mutation,
                 todo!()
             })
             .collect()
     }
 }
 
-//
-pub trait SelectionMethod {
-    fn select<'a, I>(&self, rng: &mut dyn RngCore, population: &'a [I]) -> &'a I
-    where
-        I: Individual;
-}
-
-// Rulete
-pub struct RouletteWheelSelection;
-
-impl SelectionMethod for RouletteWheelSelection {
-    fn select<'a, I>(&self, rng: &mut dyn RngCore, population: &'a [I]) -> &'a I
-    where
-        I: Individual,
-    {
-        population
-            .choose_weighted(rng, |individual| individual.fitness())
-            .expect("")
-    }
-}
-
 #[cfg(test)]
 mod tests {
+    use crate::chromosome::Crhomosome;
+    use crate::selection::RouletteWheelSelection;
 
     use super::*;
     use rand::SeedableRng;
     use rand_chacha::ChaCha8Rng;
     use std::collections::BTreeMap;
     use std::iter::FromIterator;
+
+    struct TestIndividual {
+        fitness: f32,
+    }
+
+    impl TestIndividual {
+        fn new(fitness: f32) -> Self {
+            Self { fitness }
+        }
+    }
+
+    impl Individual for TestIndividual {
+        fn fitness(&self) -> f32 {
+            self.fitness
+        }
+
+        fn chromosome(&self) -> &Crhomosome {
+            panic!("not supported for TestIndividual")
+        }
+    }
 
     #[test]
     fn roulette_wheel_selection() {
@@ -87,24 +95,6 @@ mod tests {
         }
 
         let expected_histogram = BTreeMap::from_iter([(1, 98), (2, 202), (3, 278), (4, 422)]);
-
         assert_eq!(actual_histogram, expected_histogram);
-    }
-
-    #[derive(Clone, Debug)]
-    struct TestIndividual {
-        fitness: f32,
-    }
-
-    impl TestIndividual {
-        fn new(fitness: f32) -> Self {
-            Self { fitness }
-        }
-    }
-
-    impl Individual for TestIndividual {
-        fn fitness(&self) -> f32 {
-            self.fitness
-        }
     }
 }
