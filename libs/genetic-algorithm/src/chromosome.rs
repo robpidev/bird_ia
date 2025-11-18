@@ -1,7 +1,14 @@
 use std::ops::Index;
 
+#[derive(Debug, Clone)]
 pub struct Crhomosome {
-    genes: Vec<f32>,
+    pub genes: Vec<f32>,
+}
+
+impl PartialEq for Crhomosome {
+    fn eq(&self, other: &Self) -> bool {
+        approx::relative_eq!(self.genes.as_slice(), other.genes.as_slice())
+    }
 }
 
 impl Crhomosome {

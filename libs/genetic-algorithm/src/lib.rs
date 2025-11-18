@@ -1,28 +1,33 @@
 mod chromosome;
 mod crossover;
+mod individual;
 mod mutation;
 mod selection;
 
+use individual::Individual;
 use rand::RngCore;
 
-use crate::{
-    crossover::CrossoverMethod,
-    selection::{Individual, SelectionMethod},
-};
+use crate::{crossover::CrossoverMethod, mutation::MutationMethod, selection::SelectionMethod};
 
 pub struct GeneticAlgorithm<S> {
     selection_method: S,
     crossover_method: Box<dyn CrossoverMethod>,
+    mutation_method: Box<dyn MutationMethod>,
 }
 
 impl<S> GeneticAlgorithm<S>
 where
     S: SelectionMethod,
 {
-    pub fn new(selection_method: S, crossover_method: impl CrossoverMethod + 'static) -> Self {
+    pub fn new(
+        selection_method: S,
+        crossover_method: impl CrossoverMethod + 'static,
+        mutation_method: impl MutationMethod + 'static,
+    ) -> Self {
         Self {
             selection_method,
             crossover_method: Box::new(crossover_method),
+            mutation_method: Box::new(mutation_method),
         }
     }
 
@@ -35,9 +40,9 @@ where
                 // Selection
                 let parent_a = self.selection_method.select(rng, population).chromosome();
                 let parent_b = self.selection_method.select(rng, population).chromosome();
-                let mut _child = self.crossover_method.crossover(rng, parent_a, parent_b);
-                // TODO: mutation,
-                todo!()
+                let mut child = self.crossover_method.crossover(rng, parent_a, parent_b);
+                self.mutation_method.mutate(rng, &mut child);
+                I::create(child)
             })
             .collect()
     }
@@ -45,57 +50,66 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::chromosome::Crhomosome;
-    use crate::selection::RouletteWheelSelection;
-
-    use super::*;
     use rand::SeedableRng;
     use rand_chacha::ChaCha8Rng;
-    use std::collections::BTreeMap;
-    use std::iter::FromIterator;
 
-    struct TestIndividual {
-        fitness: f32,
-    }
+    use crate::{
+        chromosome::Crhomosome, crossover::UniformCrossover, mutation::GaussianMutation,
+        selection::RouletteWheelSelection,
+    };
 
-    impl TestIndividual {
-        fn new(fitness: f32) -> Self {
-            Self { fitness }
-        }
-    }
-
-    impl Individual for TestIndividual {
-        fn fitness(&self) -> f32 {
-            self.fitness
-        }
-
-        fn chromosome(&self) -> &Crhomosome {
-            panic!("not supported for TestIndividual")
-        }
-    }
+    use super::*;
 
     #[test]
-    fn roulette_wheel_selection() {
-        let mut rng = ChaCha8Rng::from_seed(Default::default());
-
-        let population = vec![
-            TestIndividual::new(2.0),
-            TestIndividual::new(1.0),
-            TestIndividual::new(4.0),
-            TestIndividual::new(3.0),
-        ];
-
-        let mut actual_histogram = BTreeMap::new();
-
-        for _ in 0..1000 {
-            let fitness = RouletteWheelSelection
-                .select(&mut rng, &population)
-                .fitness() as i32;
-
-            *actual_histogram.entry(fitness).or_insert(0) += 1;
+    fn genetic_algorithm() {
+        #[derive(Clone, Debug, PartialEq)]
+        struct TestIndividual {
+            chromosome: Crhomosome,
         }
 
-        let expected_histogram = BTreeMap::from_iter([(1, 98), (2, 202), (3, 278), (4, 422)]);
-        assert_eq!(actual_histogram, expected_histogram);
+        impl Individual for TestIndividual {
+            fn create(chromosome: Crhomosome) -> Self {
+                Self { chromosome }
+            }
+
+            fn chromosome(&self) -> &Crhomosome {
+                &self.chromosome
+            }
+
+            fn fitness(&self) -> f32 {
+                self.chromosome().iter().sum()
+            }
+        }
+
+        fn individual(genes: &[f32]) -> TestIndividual {
+            TestIndividual::create(genes.iter().cloned().collect())
+        }
+
+        let mut rng = ChaCha8Rng::from_seed(Default::default());
+        let ga = GeneticAlgorithm::new(
+            RouletteWheelSelection,
+            UniformCrossover,
+            GaussianMutation::new(0.5, 0.5),
+        );
+
+        let mut population = vec![
+            individual(&[0.0, 0.0, 0.0]),
+            individual(&[1.0, 1.0, 1.0]),
+            individual(&[1.0, 2.0, 1.0]),
+            individual(&[1.0, 2.0, 4.0]),
+        ];
+
+        for _ in 0..10 {
+            population = ga.envolve(&mut rng, &population);
+        }
+
+        let expected_population = vec![
+            individual(&[1.606008, 2.789879, 3.6941864]),
+            individual(&[1.0839049, 2.4461222, -0.8869108]),
+            individual(&[0.99193525, 2.588976, 3.5712361]),
+            individual(&[1.646358, 2.392836, 3.9752667]),
+        ];
+
+        assert_eq!(population, expected_population);
     }
 }
