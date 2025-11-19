@@ -3,6 +3,31 @@ use rand::RngCore;
 mod neuron;
 use neuron::Neuron;
 
+// === Network ===
+
+pub struct Network {
+    layers: Vec<Layer>,
+}
+
+impl Network {
+    pub fn propagate(&self, inputs: Vec<f32>) -> Vec<f32> {
+        self.layers
+            .iter()
+            .fold(inputs, |inputs, layer| layer.propagate(inputs))
+    }
+
+    pub fn random(rng: &mut dyn RngCore, layers: &[LayerTopology]) -> Self {
+        let layers = layers
+            .windows(2)
+            .map(|layers| Layer::random(rng, layers[0].neurons, layers[1].neurons))
+            .collect();
+
+        Self { layers }
+    }
+}
+
+// === Layer ===
+
 struct Layer {
     neurons: Vec<Neuron>,
 }
@@ -24,27 +49,8 @@ impl Layer {
     }
 }
 
+// === Topology ===
+
 pub struct LayerTopology {
     pub neurons: usize,
-}
-
-pub struct Network {
-    layers: Vec<Layer>,
-}
-
-impl Network {
-    pub fn propagate(&self, inputs: Vec<f32>) -> Vec<f32> {
-        self.layers
-            .iter()
-            .fold(inputs, |inputs, layer| layer.propagate(inputs))
-    }
-
-    pub fn random(rng: &mut dyn RngCore, layers: &[LayerTopology]) -> Self {
-        let layers = layers
-            .windows(2)
-            .map(|layers| Layer::random(rng, layers[0].neurons, layers[1].neurons))
-            .collect();
-
-        Self { layers }
-    }
 }
