@@ -4,10 +4,18 @@ mod individual;
 mod mutation;
 mod selection;
 
-use individual::Individual;
-use rand::RngCore;
+// === Exports ===
+pub use chromosome::Crhomosome;
+pub use crossover::UniformCrossover;
+pub use individual::Individual;
+pub use mutation::GaussianMutation;
+pub use selection::RouletteWheelSelection;
 
-use crate::{crossover::CrossoverMethod, mutation::MutationMethod, selection::SelectionMethod};
+// === Internal ===
+use crossover::CrossoverMethod;
+use mutation::MutationMethod;
+use rand::RngCore;
+use selection::SelectionMethod;
 
 pub struct GeneticAlgorithm<S> {
     selection_method: S,

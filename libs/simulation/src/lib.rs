@@ -1,12 +1,17 @@
 mod animal;
+mod animal_individual;
+mod brain;
 mod eye;
 mod food;
 mod world;
 
 use std::f32::consts::FRAC_PI_2;
 
+use lib_genetic_algorithm as ga;
 use nalgebra::{self as na};
 use rand::{Rng, RngCore};
+
+use crate::animal_individual::AnimalIndividual;
 
 pub use self::animal::Animal;
 pub use self::food::Food;
@@ -17,16 +22,24 @@ const SPEED_MIN: f32 = 0.001;
 const SPEED_MAX: f32 = 0.005;
 const SPEED_ACCEL: f32 = 0.2;
 const ROTATION_ACCEL: f32 = FRAC_PI_2;
+const GENERATION_LENGTH: usize = 2500;
 
 pub struct Simulation {
     world: World,
+    ga: ga::GeneticAlgorithm<ga::RouletteWheelSelection>,
+    age: usize,
 }
 
 impl Simulation {
     pub fn random(rng: &mut dyn RngCore) -> Self {
-        Self {
-            world: World::random(rng),
-        }
+        let world = World::random(rng);
+        let ga = ga::GeneticAlgorithm::new(
+            ga::RouletteWheelSelection,
+            ga::UniformCrossover,
+            ga::GaussianMutation::new(0.01, 0.3),
+        );
+
+        Self { world, ga, age: 0 }
     }
 
     pub fn world(&self) -> &World {
@@ -37,6 +50,11 @@ impl Simulation {
         self.process_collisions(rng);
         self.process_brains();
         self.process_movement();
+
+        self.age += 1;
+        if self.age > GENERATION_LENGTH {
+            self.envolve(rng);
+        }
     }
 
     fn process_collisions(&mut self, rng: &mut dyn RngCore) {
@@ -45,6 +63,7 @@ impl Simulation {
                 let distance = na::distance(&animal.position(), &food.position());
 
                 if distance < 0.01 {
+                    animal.satiation += 1;
                     food.position = rng.random();
                 }
             }
@@ -58,7 +77,7 @@ impl Simulation {
                     .eye
                     .process_vision(animal.positon, animal.rotation, &self.world.foods);
 
-            let res = animal.brain.propagate(vision);
+            let res = animal.brain.nn.propagate(vision);
             let speed = res[0].clamp(-SPEED_ACCEL, SPEED_ACCEL);
             let rotation = res[1].clamp(-ROTATION_ACCEL, ROTATION_ACCEL);
 
@@ -74,6 +93,32 @@ impl Simulation {
 
             animal.positon.x = na::wrap(animal.positon.x, 0.0, 1.0);
             animal.positon.y = na::wrap(animal.positon.y, 0.0, 1.0);
+        }
+    }
+
+    fn envolve(&mut self, rng: &mut dyn RngCore) {
+        self.age = 0;
+
+        // Step 1: Prepare the birds to be sent into the genetic algorithm
+        let current_population: Vec<_> = self
+            .world
+            .animals
+            .iter()
+            .map(AnimalIndividual::from)
+            .collect();
+
+        // Step 2: Envolve birdies
+        let envolved_population = self.ga.envolve(rng, &current_population);
+
+        // Step 3: Bring birdies back from the genetic algorithm
+        self.world.animals = envolved_population
+            .into_iter()
+            .map(|i| i.into_animal(rng))
+            .collect();
+
+        // Step 4: Restart foods
+        for food in &mut self.world.foods {
+            food.position = rng.random();
         }
     }
 }
