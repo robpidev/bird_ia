@@ -1,4 +1,22 @@
 body {
-  background-color: #222123;
+  background-color: #121212;
   color: #fff;
+  margin: 0;
+}
+
+* {
+  font-family: "JetBrainsMono Nerd Font", monospace;
+  box-sizing: border-box;
+}
+
+button {
+  background-color: #cdb9fb;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 8px;
+}
+
+button:hover {
+  background-color: #cd80fb;
+  box-shadow: 0 4px 8px rgba(255, 255, 255, 0.2);
 }

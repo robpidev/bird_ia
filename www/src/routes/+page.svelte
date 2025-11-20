@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import * as sim from '../../../libs/simulation-wasm/pkg';
+	import Stats from './Stats.svelte';
 
 	let canvas: HTMLCanvasElement;
 	let ctx: CanvasRenderingContext2D | null;
@@ -13,6 +14,12 @@
 	let size = 10;
 	let foodSize = 3;
 
+	let stats = $state({
+		min: 0,
+		max: 0,
+		avg: 0,
+		gen: 0
+	});
 	const simulation = new sim.Simulation();
 
 	function drawTriangle(ctx: CanvasRenderingContext2D, x: number, y: number, angle: number) {
@@ -63,15 +70,28 @@
 		requestAnimationFrame(loop);
 	};
 
+	function train() {
+		const train = simulation.train();
+		const gen = train.info.generation;
+		stats = {
+			min: train.stats.min,
+			max: train.stats.max,
+			avg: train.stats.avg,
+			gen: train.info.generation
+		};
+	}
+
 	onMount(() => {
 		ctx = canvas.getContext('2d');
 		requestAnimationFrame(loop);
 	});
 </script>
 
+<Stats {...stats} />
+
 <canvas bind:this={canvas} width="800" height="600"></canvas>
 
-<button onclick={() => console.log(simulation.train())}>Train</button>
+<button onclick={train}>Train</button>
 
 <style>
 	canvas {
@@ -79,6 +99,6 @@
 		height: 100%;
 		border: rgba(255, 255, 255, 0.5) solid 1px;
 		border-radius: 10px;
-		background-color: rgba(0, 0, 0, 0.5);
+		background-color: rgba(255, 255, 255, 0.1);
 	}
 </style>

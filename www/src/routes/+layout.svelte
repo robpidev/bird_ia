@@ -8,4 +8,17 @@
 	<link rel="icon" href={favicon} />
 </svelte:head>
 
-{@render children()}
+<div class="container">
+	{@render children()}
+</div>
+
+<style>
+	.container {
+		padding: 1rem;
+		display: flex;
+		flex-direction: column;
+		max-width: 1200px;
+		justify-self: center;
+		gap: 1rem;
+	}
+</style>

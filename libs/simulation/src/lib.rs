@@ -3,6 +3,7 @@ mod animal_individual;
 mod brain;
 mod eye;
 mod food;
+mod information;
 mod world;
 
 use std::f32::consts::FRAC_PI_2;
@@ -15,7 +16,9 @@ use crate::animal_individual::AnimalIndividual;
 
 pub use self::animal::Animal;
 pub use self::food::Food;
+pub use self::information::Information;
 pub use self::world::World;
+pub use ga::Statistics;
 
 // === Const ===
 const SPEED_MIN: f32 = 0.001;
@@ -28,6 +31,7 @@ pub struct Simulation {
     world: World,
     ga: ga::GeneticAlgorithm<ga::RouletteWheelSelection>,
     age: usize,
+    generation: usize,
 }
 
 impl Simulation {
@@ -39,7 +43,12 @@ impl Simulation {
             ga::GaussianMutation::new(0.01, 0.3),
         );
 
-        Self { world, ga, age: 0 }
+        Self {
+            world,
+            ga,
+            age: 0,
+            generation: 0,
+        }
     }
 
     pub fn world(&self) -> &World {
@@ -53,6 +62,7 @@ impl Simulation {
 
         self.age += 1;
         if self.age > GENERATION_LENGTH {
+            self.generation += 1;
             Some(self.envolve(rng))
         } else {
             None
@@ -60,10 +70,10 @@ impl Simulation {
     }
 
     /// Fast-forward to the end of the current generation
-    pub fn train(&mut self, rng: &mut dyn RngCore) -> ga::Statistics {
+    pub fn train(&mut self, rng: &mut dyn RngCore) -> (ga::Statistics, Information) {
         loop {
             if let Some(summary) = self.step(rng) {
-                return summary;
+                return (summary, Information::new(self.generation));
             }
         }
     }

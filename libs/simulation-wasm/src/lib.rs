@@ -27,13 +27,13 @@ impl Simulation {
         self.sim.step(&mut self.rng);
     }
 
-    pub fn train(&mut self) -> String {
-        let statas = self.sim.train(&mut self.rng);
+    pub fn train(&mut self) -> Data {
+        let (statas, info) = self.sim.train(&mut self.rng);
 
-        format!(
-            "min={:.2}, max={:.2}, avg={:.2}",
-            statas.min_fitness, statas.max_fitness, statas.average_fitness
-        )
+        Data {
+            stats: Stats::from(statas),
+            info: Information::from(info),
+        }
     }
 }
 
@@ -91,4 +91,46 @@ impl From<&sim::Food> for Food {
             y: food.position().y,
         }
     }
+}
+
+// === Stats ===
+#[wasm_bindgen]
+#[derive(Clone, Debug, Copy)]
+pub struct Stats {
+    pub min: f32,
+    pub max: f32,
+    pub avg: f32,
+}
+
+impl From<sim::Statistics> for Stats {
+    fn from(stats: sim::Statistics) -> Self {
+        Self {
+            min: stats.min_fitness,
+            max: stats.max_fitness,
+            avg: stats.average_fitness,
+        }
+    }
+}
+
+// === Information ===
+#[wasm_bindgen]
+#[derive(Clone, Debug, Copy)]
+pub struct Information {
+    pub generation: usize,
+}
+
+impl From<sim::Information> for Information {
+    fn from(info: sim::Information) -> Self {
+        Self {
+            generation: info.generation(),
+        }
+    }
+}
+
+// === Data ===
+#[wasm_bindgen]
+#[derive(Clone, Debug)]
+pub struct Data {
+    pub stats: Stats,
+    pub info: Information,
 }
