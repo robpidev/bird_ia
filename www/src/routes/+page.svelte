@@ -10,8 +10,8 @@
 	let ch = 600;
 	let cw = 800;
 	let last = 0;
-	let size = 15;
-	let foodSize = 5;
+	let size = 10;
+	let foodSize = 3;
 
 	const simulation = new sim.Simulation();
 
@@ -70,6 +70,8 @@
 </script>
 
 <canvas bind:this={canvas} width="800" height="600"></canvas>
+
+<button onclick={() => simulation.train()}>Train</button>
 
 <style>
 	canvas {
