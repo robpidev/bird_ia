@@ -46,25 +46,24 @@ impl Simulation {
         &self.world
     }
 
-    pub fn step(&mut self, rng: &mut dyn RngCore) -> bool {
+    pub fn step(&mut self, rng: &mut dyn RngCore) -> Option<ga::Statistics> {
         self.process_collisions(rng);
         self.process_brains();
         self.process_movement();
 
         self.age += 1;
         if self.age > GENERATION_LENGTH {
-            self.envolve(rng);
-            true
+            Some(self.envolve(rng))
         } else {
-            false
+            None
         }
     }
 
     /// Fast-forward to the end of the current generation
-    pub fn train(&mut self, rng: &mut dyn RngCore) {
+    pub fn train(&mut self, rng: &mut dyn RngCore) -> ga::Statistics {
         loop {
-            if self.step(rng) {
-                return;
+            if let Some(summary) = self.step(rng) {
+                return summary;
             }
         }
     }
@@ -108,7 +107,7 @@ impl Simulation {
         }
     }
 
-    fn envolve(&mut self, rng: &mut dyn RngCore) {
+    fn envolve(&mut self, rng: &mut dyn RngCore) -> ga::Statistics {
         self.age = 0;
 
         // Step 1: Prepare the birds to be sent into the genetic algorithm
@@ -120,7 +119,7 @@ impl Simulation {
             .collect();
 
         // Step 2: Envolve birdies
-        let envolved_population = self.ga.envolve(rng, &current_population);
+        let (envolved_population, stats) = self.ga.envolve(rng, &current_population);
 
         // Step 3: Bring birdies back from the genetic algorithm
         self.world.animals = envolved_population
@@ -132,5 +131,7 @@ impl Simulation {
         for food in &mut self.world.foods {
             food.position = rng.random();
         }
+
+        stats
     }
 }

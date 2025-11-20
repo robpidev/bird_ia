@@ -27,8 +27,13 @@ impl Simulation {
         self.sim.step(&mut self.rng);
     }
 
-    pub fn train(&mut self) {
-        self.sim.train(&mut self.rng);
+    pub fn train(&mut self) -> String {
+        let statas = self.sim.train(&mut self.rng);
+
+        format!(
+            "min={:.2}, max={:.2}, avg={:.2}",
+            statas.min_fitness, statas.max_fitness, statas.average_fitness
+        )
     }
 }
 

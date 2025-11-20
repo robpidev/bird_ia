@@ -3,6 +3,7 @@ mod crossover;
 mod individual;
 mod mutation;
 mod selection;
+mod statistics;
 
 // === Exports ===
 pub use chromosome::Crhomosome;
@@ -10,6 +11,7 @@ pub use crossover::UniformCrossover;
 pub use individual::Individual;
 pub use mutation::GaussianMutation;
 pub use selection::RouletteWheelSelection;
+pub use statistics::Statistics;
 
 // === Internal ===
 use crossover::CrossoverMethod;
@@ -39,11 +41,11 @@ where
         }
     }
 
-    pub fn envolve<I>(&self, rng: &mut dyn RngCore, population: &[I]) -> Vec<I>
+    pub fn envolve<I>(&self, rng: &mut dyn RngCore, population: &[I]) -> (Vec<I>, Statistics)
     where
         I: Individual,
     {
-        (0..population.len())
+        let new_population = (0..population.len())
             .map(|_| {
                 // Selection
                 let parent_a = self.selection_method.select(rng, population).chromosome();
@@ -52,7 +54,11 @@ where
                 self.mutation_method.mutate(rng, &mut child);
                 I::create(child)
             })
-            .collect()
+            .collect();
+
+        let stats = Statistics::new(&population);
+
+        (new_population, stats)
     }
 }
 

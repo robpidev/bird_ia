@@ -71,7 +71,7 @@
 
 <canvas bind:this={canvas} width="800" height="600"></canvas>
 
-<button onclick={() => simulation.train()}>Train</button>
+<button onclick={() => console.log(simulation.train())}>Train</button>
 
 <style>
 	canvas {
