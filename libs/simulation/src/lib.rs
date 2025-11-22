@@ -35,8 +35,9 @@ pub struct Simulation {
 }
 
 impl Simulation {
-    pub fn random(rng: &mut dyn RngCore) -> Self {
-        let world = World::random(rng);
+    /// Create a random simulation
+    pub fn random(rng: &mut dyn RngCore, animals_count: usize, food_count: usize) -> Self {
+        let world = World::random(rng, animals_count, food_count);
         let ga = ga::GeneticAlgorithm::new(
             ga::RouletteWheelSelection,
             ga::UniformCrossover,
@@ -55,7 +56,7 @@ impl Simulation {
         &self.world
     }
 
-    pub fn step(&mut self, rng: &mut dyn RngCore) -> Option<ga::Statistics> {
+    pub fn step(&mut self, rng: &mut dyn RngCore) -> Option<(ga::Statistics, Information)> {
         self.process_collisions(rng);
         self.process_brains();
         self.process_movement();
@@ -63,7 +64,7 @@ impl Simulation {
         self.age += 1;
         if self.age > GENERATION_LENGTH {
             self.generation += 1;
-            Some(self.envolve(rng))
+            Some((self.envolve(rng), Information::new(self.generation)))
         } else {
             None
         }
@@ -73,7 +74,7 @@ impl Simulation {
     pub fn train(&mut self, rng: &mut dyn RngCore) -> (ga::Statistics, Information) {
         loop {
             if let Some(summary) = self.step(rng) {
-                return (summary, Information::new(self.generation));
+                return summary;
             }
         }
     }

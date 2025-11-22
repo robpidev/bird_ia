@@ -17,7 +17,7 @@
 		padding: 1rem;
 		display: flex;
 		flex-direction: column;
-		max-width: 1200px;
+		max-width: 1000px;
 		justify-self: center;
 		gap: 1rem;
 	}

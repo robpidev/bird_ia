@@ -8,9 +8,10 @@ pub struct World {
 }
 
 impl World {
-    pub fn random(rng: &mut dyn RngCore) -> Self {
-        let animals = (0..40).map(|_| Animal::random(rng)).collect();
-        let foods = (0..60).map(|_| Food::random(rng)).collect();
+    /// Create a random world with animals and foods
+    pub fn random(rng: &mut dyn RngCore, animals_count: usize, food_count: usize) -> Self {
+        let animals = (0..animals_count).map(|_| Animal::random(rng)).collect();
+        let foods = (0..food_count).map(|_| Food::random(rng)).collect();
 
         Self { animals, foods }
     }
